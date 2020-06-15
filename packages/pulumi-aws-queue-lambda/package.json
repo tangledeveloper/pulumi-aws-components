@@ -1,0 +1,35 @@
+{
+  "name": "@koneru9999/pulumi-aws-queue-lambda",
+  "version": "0.0.0",
+  "main": "./dist",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/koneru9999/pulumi-aws-components.git",
+    "directory": "packages/pulumi-aws-queue-lambda"
+  },
+  "directories": {
+    "lib": "dist",
+    "test": "tests"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "pretest": "rimraf 'tests/**/*.{js,js.map,d.ts}'",
+    "clean": "rimraf ./dist",
+    "prebuild": "yarn clean",
+    "build": "tsc"
+  },
+  "peerDependencies": {
+    "@pulumi/aws": "2.9.0",
+    "@pulumi/pulumi": "2.4.0"
+  },
+  "devDependencies": {
+    "@pulumi/aws": "2.9.0",
+    "@pulumi/pulumi": "2.4.0"
+  }
+}
