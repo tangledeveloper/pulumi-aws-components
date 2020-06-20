@@ -18,7 +18,9 @@
     "noFallthroughCasesInSwitch": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "outDir": "./dist"
   },
+  "include": ["./src", "examples/test.ts"],
   "exclude": ["node_modules", "**/*.spec.ts"]
 }
