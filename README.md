@@ -2,4 +2,4 @@
 
 Collection of customer pulumi resources based on best practices.
 
-- [LambdaFunction](src/LambdaFunction.ts]
+- [LambdaFunction](src/LambdaFunction.ts)
