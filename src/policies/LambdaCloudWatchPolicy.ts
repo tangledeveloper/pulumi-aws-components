@@ -19,7 +19,7 @@ export class LambdaCloudWatchPolicy extends pulumi.ComponentResource {
   readonly logGroup: aws.cloudwatch.LogGroup
 
   constructor(name: string, args: LambdaCloudWatchPolicyArgs, opts?: pulumi.ComponentResourceOptions) {
-    super('aws:components:LambdaCloudWatchPolicy', `${name}-policy`, args, opts)
+    super('aws:components:LambdaCloudWatchPolicy', name, args, opts)
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this }
     const { lambdaName } = args
@@ -42,14 +42,18 @@ export class LambdaCloudWatchPolicy extends pulumi.ComponentResource {
       defaultResourceOptions
     )
 
-    this.logGroup = new aws.cloudwatch.LogGroup(`${name}-log-group`, {
-      name: `/aws/lambda/${args.lambdaName}`,
-      ...(args.logRetentionInDays
-        ? {
-            retentionInDays: args.logRetentionInDays
-          }
-        : {})
-    })
+    this.logGroup = new aws.cloudwatch.LogGroup(
+      `${name}-log-group`,
+      {
+        name: `/aws/lambda/${args.lambdaName}`,
+        ...(args.logRetentionInDays
+          ? {
+              retentionInDays: args.logRetentionInDays
+            }
+          : {})
+      },
+      defaultResourceOptions
+    )
 
     this.registerOutputs(this.policy)
     this.registerOutputs(this.logGroup)

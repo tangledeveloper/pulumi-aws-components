@@ -5,6 +5,20 @@ import { LambdaCloudWatchPolicy } from './policies'
 
 /**
  * Arguments to LambdaFunction
+ *
+ * ```typescript
+ * import { LambdaFunction } from 'pulumi-aws-components'
+ *
+ * const lambda = new LambdaFunction('', {
+ *  policyArns: [],
+ *  environment: {
+ *    'keyA': 'valueA',
+ *    ...
+ *  },
+ *  # ... other aws.lambda.FunctionArgs
+ * })
+ *
+ * ```
  */
 export interface LambdaFunctionArgs extends Omit<aws.lambda.FunctionArgs, 'name' | 'role' | 'environment'> {
   /**
@@ -18,12 +32,6 @@ export interface LambdaFunctionArgs extends Omit<aws.lambda.FunctionArgs, 'name'
   environment?: {
     [key: string]: pulumi.Input<string>
   }
-
-  /**
-   * IAM role to attach to the Lambda Function.
-   * If omitted, a new role will be created with a default  `sts:AssumeRole` for `lambda.amazonaws.com` service.
-   */
-  roleName?: string
 }
 
 /**
@@ -32,7 +40,7 @@ export interface LambdaFunctionArgs extends Omit<aws.lambda.FunctionArgs, 'name'
 export class LambdaFunction extends pulumi.ComponentResource {
   readonly role: aws.iam.Role
   readonly lambda: aws.lambda.Function
-  readonly roleAttachments: pulumi.Output<aws.iam.RolePolicyAttachment>[]
+  readonly roleAttachments: aws.iam.RolePolicyAttachment[]
 
   /**
    * Creates a new Lambda function with a default cloudwatch policy.
@@ -42,32 +50,22 @@ export class LambdaFunction extends pulumi.ComponentResource {
    * @param opts A bag of options that control this resource's behavior.
    */
   constructor(name: string, args: LambdaFunctionArgs, opts?: pulumi.CustomResourceOptions) {
-    super('aws:components:LambdaFunction', `${name}-lambda`, args, opts)
+    super('aws:components:LambdaFunction', name, args, opts)
 
     // Default resource options for this component's child resources.
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this }
 
-    const roleName = args.roleName || `${name}-role`
-    let roleARN: pulumi.Input<string> | null = null
-
-    // new aws.cloudwatch.LogGroup()
-
-    if (args.roleName) {
-      const providedRole = pulumi.output(aws.iam.getRole({ name: args.roleName }, { async: true }))
-      roleARN = providedRole.arn
-    } else {
-      this.role = new aws.iam.Role(
-        roleName,
-        {
-          name: roleName,
-          assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({
-            Service: ['lambda.amazonaws.com']
-          })
-        },
-        defaultResourceOptions
-      )
-      roleARN = this.role.arn
-    }
+    const roleName = `${name}-role`
+    this.role = new aws.iam.Role(
+      roleName,
+      {
+        name: roleName,
+        assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({
+          Service: ['lambda.amazonaws.com']
+        })
+      },
+      defaultResourceOptions
+    )
 
     this.lambda = new aws.lambda.Function(
       name,
@@ -80,30 +78,28 @@ export class LambdaFunction extends pulumi.ComponentResource {
           }
         },
         name,
-        role: roleARN
+        role: this.role.arn
       },
       defaultResourceOptions
     )
 
     // to manage the CloudWatch Log Group for the Lambda Function.
-    const cloudWatchPolicy = new LambdaCloudWatchPolicy(name, { lambdaName: name }, defaultResourceOptions)
+    const cloudWatchPolicy = new LambdaCloudWatchPolicy(`${name}-policy`, { lambdaName: name }, defaultResourceOptions)
 
     // Attach any additional policies
     const { policyArns = [] } = args
-    this.roleAttachments = [...policyArns, cloudWatchPolicy.policy.arn].map(arn => {
-      // extract the policy-name from the arn to use it as attachment name
-      // arn:aws:iam::<account-id>:policy/<policy-name>
-      return pulumi.output(arn).apply(policyArn => {
-        const policyAttachmentName = `${policyArn.slice(policyArn.lastIndexOf('/'))}-role-attachment`
-        return new aws.iam.RolePolicyAttachment(
-          policyAttachmentName,
-          {
-            policyArn: arn,
-            role: roleName
-          },
-          defaultResourceOptions
-        )
-      })
+    this.roleAttachments = [...policyArns, cloudWatchPolicy.policy.arn].map((arn, index) => {
+      // TODO: to extract the policy-name from the arn (arn:aws:iam::<account-id>:policy/<policy-name>)
+      // to use it as attachment name instead of using index
+      const policyAttachmentName = `${roleName}-policy-attachment-${index}`
+      return new aws.iam.RolePolicyAttachment(
+        policyAttachmentName,
+        {
+          policyArn: arn,
+          role: roleName
+        },
+        defaultResourceOptions
+      )
     })
 
     this.registerOutputs(this.lambda)
