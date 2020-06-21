@@ -59,5 +59,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/koneru9999/pulumi-aws-components.git"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
