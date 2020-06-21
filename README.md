@@ -34,8 +34,8 @@ npm i --save-dev pulumi-aws-components
   +   │  ├─ aws:sns:Topic                   pdf-text-extractor-sns-topic                        create
   +   │  ├─ aws:s3:Bucket                   pdf-text-extractor-bucket                           create
   +   │  │  └─ aws:s3:BucketNotification    pdf-text-extractor-AsyncTextExtractor-onUpload      create
-  +   │  ├─ aws:iam:Role                    AmazonTextract-pdf-text-extractor-role               create
-  +   │  ├─ aws:iam:RolePolicy              AmazonTextract-pdf-text-extractor-role-policy        create
+  +   │  ├─ aws:iam:Role                    pdf-text-extractor-textract-service-role            create
+  +   │  ├─ aws:iam:RolePolicy              pdf-text-extractor-role-policy                      create
   +   │  ├─ aws:iam:RolePolicyAttachment    pdf-text-extractor-sns-topic-policy-attachment      create
   +   │  └─ aws:lambda:Function             pdf-text-extractor-lambda-callback                  create
   +   └─ aws:components:SNSPublishPolicy    pdf-text-extractor-sns-topic-policy                 create
@@ -47,5 +47,3 @@ npm i --save-dev pulumi-aws-components
 
 - [EventsQueue](src/components/EventsQueue.ts)
 - [QueueLambda](src/components/QueueLambda.ts)
-
-_TODO_: _Add more detailed docs_
