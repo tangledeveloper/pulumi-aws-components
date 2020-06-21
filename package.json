@@ -1,6 +1,6 @@
 {
   "name": "pulumi-aws-components",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Reusable Pulumi components ",
   "author": "Venkaiah Chowdary Koneru <koneru.chowdary@gmail.com>",
   "license": "MIT",
