@@ -2,6 +2,10 @@
 
 Collection of customer pulumi resources based on best practices.
 
-![Node.js Package](https://github.com/koneru9999/pulumi-aws-components/workflows/Node.js%20Package/badge.svg)
+[![npm version](https://badge.fury.io/js/pulumi-aws-components.svg)](https://www.npmjs.com/pulumi-aws-components)
+
+`npm i --save-dev pulumi-aws-components`
+
+#### Components
 
 - [LambdaFunction](src/LambdaFunction.ts)
