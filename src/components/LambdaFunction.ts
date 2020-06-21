@@ -102,8 +102,6 @@ export class LambdaFunction extends pulumi.ComponentResource {
       )
     })
 
-    this.registerOutputs(this.lambda)
-    this.registerOutputs(this.role)
-    this.registerOutputs(this.roleAttachments)
+    this.registerOutputs({ lambda: this.lambda, role: this.role, roleAttachments: this.roleAttachments })
   }
 }
