@@ -13,3 +13,5 @@ Collection of custom pulumi resources based on best practices.
 - [AWS Textract](src/components/AsyncTextExtract.ts)
 - [EventsQueue](src/components/EventsQueue.ts)
 - [QueueLambda](src/components/QueueLambda.ts)
+
+_TODO_: _Add more detailed docs_
