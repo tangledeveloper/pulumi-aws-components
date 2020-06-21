@@ -8,4 +8,8 @@ Collection of custom pulumi resources based on best practices.
 
 #### Components
 
-- [LambdaFunction](src/LambdaFunction.ts)
+- [Reusable Resource based Policies](src/components/policies)
+- [LambdaFunction](src/components/LambdaFunction.ts)
+- [AWS Textract](src/components/AsyncTextExtract.ts)
+- [EventsQueue](src/components/EventsQueue.ts)
+- [QueueLambda](src/components/QueueLambda.ts)
