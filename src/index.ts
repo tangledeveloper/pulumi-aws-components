@@ -1,3 +1,2 @@
-import { QueueLambda } from './QueueLambda'
-
-export * from './QueueLambda'
+export * from './components/LambdaFunction'
+export * from './components/QueueLambda'
