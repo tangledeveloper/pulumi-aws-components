@@ -17,8 +17,8 @@ jobs:
         with:
           node-version: 12.16.3
       - uses: docker://pulumi/actions:v2.4.0
-          env:
-            PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
       - run: npm i
       - run: npm run lint
       - run: npm run build
@@ -27,17 +27,17 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: '0'
-    - name: Bump version and push tag
-      id: bump_version
-      uses: anothrNick/github-tag-action@1.17.2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        WITH_V: true
-        RELEASE_BRANCHES: master
-        
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: '0'
+      - name: Bump version and push tag
+        id: bump_version
+        uses: anothrNick/github-tag-action@1.17.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: true
+          RELEASE_BRANCHES: master
+
   publish-npm:
     needs: build
     runs-on: ubuntu-latest
