@@ -42,7 +42,7 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
 
     const identity = pulumi.output(aws.getCallerIdentity({ async: true }))
 
-    const bucketName = `${name}-bucket`
+    const bucketName = `${name.toLowerCase()}-bucket`
     const {
       bucket = new aws.s3.Bucket(
         bucketName,
@@ -70,7 +70,7 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
       {
         name: roleName,
         assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({
-          Service: ['ec2.amazonaws.com', 'textract.amazonaws.com', 'lambda.amazon.aws']
+          Service: ['ec2.amazonaws.com', 'textract.amazonaws.com', 'lambda.amazonaws.com']
         })
       },
       defaultResourceOptions
