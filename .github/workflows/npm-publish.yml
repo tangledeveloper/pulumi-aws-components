@@ -17,6 +17,8 @@ jobs:
         with:
           node-version: 12
       - uses: docker://pulumi/actions:v2.4.0
+          env:
+            PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
       - run: npm i
       - run: npm run lint
       - run: npm run build
@@ -31,6 +33,8 @@ jobs:
           node-version: 12
           registry-url: https://registry.npmjs.org/
       - uses: docker://pulumi/actions:v2.4.0
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
       - run: npm run build
       - run: npm publish --access=public
         env:
@@ -46,6 +50,8 @@ jobs:
           node-version: 12
           registry-url: https://npm.pkg.github.com/
       - uses: docker://pulumi/actions:v2.4.0
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
       - run: npm run build
       - run: npm publish --access=public
         env:
