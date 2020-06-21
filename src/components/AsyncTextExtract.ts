@@ -62,20 +62,6 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
 
     this.bucket = bucket
 
-    // 'AmazonTextract' will be used to create inline policy for iam:PassRole.
-    // refer to https://docs.aws.amazon.com/textract/latest/dg/api-async-roles.html#api-async-roles-all-topics (step 8)
-    const roleName = `AmazonTextract${name}-role`
-    this.role = new aws.iam.Role(
-      roleName,
-      {
-        name: roleName,
-        assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({
-          Service: ['ec2.amazonaws.com', 'textract.amazonaws.com', 'lambda.amazonaws.com']
-        })
-      },
-      defaultResourceOptions
-    )
-
     const topicName = `${name}-sns-topic`
     this.snsTopic = new aws.sns.Topic(
       topicName,
@@ -84,6 +70,21 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
       },
       defaultResourceOptions
     )
+
+    // 'AmazonTextract' will be used to create inline policy for iam:PassRole.
+    // refer to https://docs.aws.amazon.com/textract/latest/dg/api-async-roles.html#api-async-roles-all-topics (step 8)
+    const roleName = `${name}-textract-service-role`
+    this.role = new aws.iam.Role(
+      roleName,
+      {
+        name: roleName,
+        assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({
+          Service: ['textract.amazonaws.com', 'lambda.amazonaws.com']
+        })
+      },
+      defaultResourceOptions
+    )
+
     this.snsPolicy = new SNSPublishPolicy(`${topicName}-policy`, { topicArn: this.snsTopic.arn })
     new aws.iam.RolePolicyAttachment(
       `${topicName}-policy-attachment`,
@@ -101,30 +102,31 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
       if (!RoleArn || !SNSTopicArn) {
         throw new Error('Required ENV are not present')
       }
-      const extract = new AWS.Textract({})
-      try {
-        for (const record of records) {
-          extract
-            .startDocumentTextDetection({
-              JobTag: record.s3.object.key,
-              DocumentLocation: {
-                S3Object: {
-                  Bucket: record.s3.bucket.name,
-                  Name: record.s3.object.key
-                }
-              },
-              NotificationChannel: {
-                RoleArn,
-                SNSTopicArn
-              }
-            })
-            .send()
-        }
+      const extract = new AWS.Textract({ logger: console, region: aws.config.region })
+      const [record] = records
+      const Bucket = record.s3.bucket.name
+      const key = record.s3.object.key
 
-        callback(undefined, undefined)
-      } catch (error) {
-        callback(error, undefined)
-      }
+      return extract
+        .startDocumentTextDetection({
+          JobTag: record.s3.object.key,
+          DocumentLocation: {
+            S3Object: {
+              Bucket,
+              Name: key
+            }
+          },
+          NotificationChannel: {
+            RoleArn,
+            SNSTopicArn
+          }
+        })
+        .promise()
+        .then(data => {
+          console.log(data)
+          callback(undefined, undefined)
+        })
+        .catch(err => callback(err, undefined))
     }
 
     const lambdaName = `${name}-lambda-callback`
@@ -145,7 +147,37 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
       defaultResourceOptions
     )
 
-    new LambdaCloudWatchPolicy(`${name}-policy`, { lambdaName }, defaultResourceOptions)
+    const cloudwatchPolicy = new LambdaCloudWatchPolicy(
+      `${name}-cloudwatch-policy`,
+      { lambdaName },
+      defaultResourceOptions
+    )
+    new aws.iam.RolePolicyAttachment(
+      `${name}-cloudwatch-policy-attachment`,
+      {
+        policyArn: cloudwatchPolicy.policy.arn,
+        role: roleName
+      },
+      defaultResourceOptions
+    )
+
+    new aws.iam.RolePolicy(
+      name,
+      {
+        role: this.role,
+        policy: {
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Allow',
+              Action: ['textract:*'],
+              Resource: this.callbackFunction.arn
+            }
+          ]
+        }
+      },
+      defaultResourceOptions
+    )
 
     this.bucketEventSubscription = bucket.onObjectCreated(
       `${name}-AsyncTextExtractor-onUpload`,
