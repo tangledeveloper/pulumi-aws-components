@@ -1,6 +1,6 @@
 ### Pulumi AWS Components
 
-Collection of customer pulumi resources based on best practices.
+Collection of custom pulumi resources based on best practices.
 
 [![npm version](https://badge.fury.io/js/pulumi-aws-components.svg)](https://www.npmjs.com/pulumi-aws-components)
 
