@@ -1,9 +1,9 @@
 import * as aws from '@pulumi/aws'
 import * as pulumi from '@pulumi/pulumi'
-import { Textract } from 'aws-sdk'
+import * as AWS from 'aws-sdk'
 
 import { EventsQueue } from './EventsQueue'
-import { SNSPublishPolicy } from './policies'
+import { SNSPublishPolicy, LambdaCloudWatchPolicy } from './policies'
 
 interface TextExtractorArgs {
   /**
@@ -20,7 +20,7 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
   readonly bucket: aws.s3.Bucket
   readonly snsTopic: aws.sns.Topic
   readonly role: aws.iam.Role
-  readonly snsRolePolicy: aws.iam.RolePolicy
+  readonly snsPolicy: SNSPublishPolicy
   readonly bucketEventSubscription: aws.s3.BucketEventSubscription
   readonly queue: EventsQueue
   readonly callbackFunction: aws.lambda.CallbackFunction<aws.s3.BucketEvent, void>
@@ -77,26 +77,6 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
     )
 
     const topicName = `${name}-sns-topic`
-    const rolePolicyName = `${roleName}-policy`
-    this.snsRolePolicy = new aws.iam.RolePolicy(
-      rolePolicyName,
-      {
-        role: this.role,
-        name: rolePolicyName,
-        policy: {
-          Version: '2012-10-17',
-          Statement: [
-            {
-              Effect: 'Allow',
-              Action: ['sns:Publish'],
-              Resource: `arn:aws:sns:*:*:${topicName}`
-            }
-          ]
-        }
-      },
-      defaultResourceOptions
-    )
-
     this.snsTopic = new aws.sns.Topic(
       topicName,
       {
@@ -104,12 +84,11 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
       },
       defaultResourceOptions
     )
-
-    const snsPolicy = new SNSPublishPolicy(`${topicName}-policy`, { topicArn: this.snsTopic.arn })
+    this.snsPolicy = new SNSPublishPolicy(`${topicName}-policy`, { topicArn: this.snsTopic.arn })
     new aws.iam.RolePolicyAttachment(
       `${topicName}-policy-attachment`,
       {
-        policyArn: snsPolicy.policy.arn,
+        policyArn: this.snsPolicy.policy.arn,
         role: roleName
       },
       defaultResourceOptions
@@ -122,7 +101,7 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
       if (!RoleArn || !SNSTopicArn) {
         throw new Error('Required ENV are not present')
       }
-      const extract = new Textract({})
+      const extract = new AWS.Textract({})
       try {
         for (const record of records) {
           extract
@@ -166,6 +145,8 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
       defaultResourceOptions
     )
 
+    new LambdaCloudWatchPolicy(`${name}-policy`, { lambdaName }, defaultResourceOptions)
+
     this.bucketEventSubscription = bucket.onObjectCreated(
       `${name}-AsyncTextExtractor-onUpload`,
       this.callbackFunction,
@@ -178,11 +159,10 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
     this.queue = new EventsQueue(`${name}-events-queue`, { topic: this.snsTopic }, defaultResourceOptions)
 
     this.registerOutputs({
-      role: this.role,
-      snsTopic: this.snsTopic,
-      queue: this.queue,
-      callbackFunction: this.callbackFunction,
-      bucketEventSubscription: this.bucketEventSubscription
+      role: { name: this.role.name, arn: this.role.arn },
+      snsTopic: { name: this.snsTopic.name, arn: this.snsTopic.arn },
+      queue: { name: this.queue.queue.name, url: this.queue.queue.id },
+      callbackFunction: { name: this.callbackFunction.name, arn: this.callbackFunction.arn }
     })
   }
 }

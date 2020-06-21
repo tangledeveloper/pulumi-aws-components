@@ -23,12 +23,9 @@ export class EventsQueue extends pulumi.ComponentResource {
     const defaultParentOptions: pulumi.ResourceOptions = { parent: this }
     const { filterPolicy, topic, visibilityTimeoutSeconds = 30 } = args
 
-    const identity = pulumi.output(aws.getCallerIdentity({ async: true }))
-
     // Queue
     const queueName = name
-    const queueUrl = pulumi.interpolate`https://sqs.${aws.config.region}.amazonaws.com/${identity.accountId}/${queueName}`
-    const queue = new aws.sqs.Queue(
+    this.queue = new aws.sqs.Queue(
       queueName,
       {
         name: queueName,
@@ -38,11 +35,12 @@ export class EventsQueue extends pulumi.ComponentResource {
     )
 
     // SNS - SQS Subscriptions
+    const queueUrl = this.queue.id
     const topicSubscriptionName = `${queueName}-topic-subscription`
     this.topicSubscription = new aws.sns.TopicSubscription(
       topicSubscriptionName,
       {
-        endpoint: queue.arn,
+        endpoint: this.queue.arn,
         protocol: 'sqs',
         topic,
         rawMessageDelivery: true,
@@ -56,7 +54,7 @@ export class EventsQueue extends pulumi.ComponentResource {
       queuePermissionName,
       {
         queueUrl,
-        policy: pulumi.all([topic.arn, queue.arn]).apply(([topicArn, queueArn]) =>
+        policy: pulumi.all([topic.arn, this.queue.arn]).apply(([topicArn, queueArn]) =>
           JSON.stringify({
             Version: '2012-10-17',
             Statement: [
@@ -78,8 +76,6 @@ export class EventsQueue extends pulumi.ComponentResource {
       defaultParentOptions
     )
 
-    this.queue = queue
-    this.visibilityTimeoutSeconds = visibilityTimeoutSeconds
-    this.registerOutputs({ queueUrl })
+    this.registerOutputs({ queue: { name: this.queue.name, url: queueUrl } })
   }
 }

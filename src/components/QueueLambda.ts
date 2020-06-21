@@ -43,6 +43,8 @@ export class QueueLambda extends pulumi.ComponentResource {
 
     this.queue = queue
 
-    this.registerOutputs({ lambda: this.lambda, queuePolicy: this.queuePolicy })
+    this.registerOutputs({
+      lambda: { name: this.lambda.lambda.name, arn: this.lambda.lambda.arn }
+    })
   }
 }

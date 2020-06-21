@@ -55,7 +55,6 @@ export class LambdaCloudWatchPolicy extends pulumi.ComponentResource {
       defaultResourceOptions
     )
 
-    this.registerOutputs(this.policy)
-    this.registerOutputs(this.logGroup)
+    this.registerOutputs({ policy: { name: this.policy.name, arn: this.policy.arn } })
   }
 }

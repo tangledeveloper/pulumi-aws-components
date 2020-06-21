@@ -34,8 +34,6 @@ export class SQSProcessPolicy extends pulumi.ComponentResource {
       defaultResourceOptions
     )
 
-    this.registerOutputs({
-      policy: this.policy
-    })
+    this.registerOutputs({ policy: { name: this.policy.name, arn: this.policy.arn } })
   }
 }
