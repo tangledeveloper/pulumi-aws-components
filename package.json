@@ -1,6 +1,6 @@
 {
   "name": "pulumi-aws-components",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "description": "Reusable Pulumi components ",
   "author": "Venkaiah Chowdary Koneru <koneru.chowdary@gmail.com>",
   "license": "MIT",
@@ -26,7 +26,7 @@
     "dist/**/*"
   ],
   "scripts": {
-    "prepublish": "npm run lint && npm run build",
+    "prepare": "npm run lint && npm run build",
     "lint": "eslint . --ext .ts,.md,.json,.yaml",
     "pretest": "rimraf 'tests/**/*.{js,js.map,d.ts}'",
     "clean": "rimraf ./dist",
