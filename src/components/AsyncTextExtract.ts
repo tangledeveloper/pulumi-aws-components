@@ -162,7 +162,7 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
     )
 
     new aws.iam.RolePolicy(
-      name,
+      `${name}-textract-policy`,
       {
         role: this.role,
         policy: {
