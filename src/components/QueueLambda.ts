@@ -1,6 +1,7 @@
 import * as aws from '@pulumi/aws'
 import * as pulumi from '@pulumi/pulumi'
-import { LambdaFunctionArgs } from './LambdaFunction'
+import { LambdaFunctionArgs, LambdaFunction } from './LambdaFunction'
+import { SQSProcessPolicy } from './policies'
 
 export interface QueueLambdaArgs extends Omit<LambdaFunctionArgs, 'role' | 'runtime'> {
   name: string
@@ -8,4 +9,40 @@ export interface QueueLambdaArgs extends Omit<LambdaFunctionArgs, 'role' | 'runt
   queueBatchSize?: number
 }
 
-export class QueueLambda extends pulumi.ComponentResource {}
+export class QueueLambda extends pulumi.ComponentResource {
+  readonly queue: aws.sqs.Queue
+  readonly lambda: LambdaFunction
+  readonly queuePolicy: SQSProcessPolicy
+
+  constructor(args: QueueLambdaArgs, opts?: pulumi.ComponentResourceOptions) {
+    super('aws:components:QueueLambda', args.name, args, opts)
+    const defaultParentOptions: pulumi.ResourceOptions = { parent: this }
+    const { name, queue, queueBatchSize = 10, environment, ...lambdaArgs } = args
+
+    this.lambda = new LambdaFunction(
+      name,
+      {
+        ...lambdaArgs,
+        runtime: aws.lambda.NodeJS12dXRuntime,
+        environment
+      },
+      defaultParentOptions
+    )
+
+    const sqsPolicyName = `${name}-policy-sqs`
+    this.queuePolicy = new SQSProcessPolicy(sqsPolicyName, { queueArn: queue.arn }, defaultParentOptions)
+
+    queue.onEvent(
+      `${name}-queue-event-subscription`,
+      this.lambda.lambda,
+      {
+        batchSize: queueBatchSize
+      },
+      defaultParentOptions
+    )
+
+    this.queue = queue
+
+    this.registerOutputs({ lambda: this.lambda, queuePolicy: this.queuePolicy })
+  }
+}
