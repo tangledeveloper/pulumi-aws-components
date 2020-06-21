@@ -4,11 +4,17 @@ Collection of custom pulumi resources based on best practices.
 
 [![npm version](https://badge.fury.io/js/pulumi-aws-components.svg)](https://www.npmjs.com/pulumi-aws-components)
 
-`npm i --save-dev pulumi-aws-components`
+#### How to use
 
-#### Components
+```
+npm i --save-dev pulumi-aws-components
+```
 
-- [Reusable Resource based Policies](src/components/policies)
+#### Available Components
+
+- [Reusable resource based IAM policies](src/components/policies)
+  These policies can be easily attached to IAM role.
+
 - [LambdaFunction](src/components/LambdaFunction.ts)
 - [AWS Textract](src/components/AsyncTextExtract.ts)
 
