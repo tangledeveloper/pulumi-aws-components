@@ -11,12 +11,6 @@
     "plugin:import/typescript",
     "prettier"
   ],
-  "overrides": [
-    {
-      "files": ["**/*.md"],
-      "processor": "markdown/markdown"
-    }
-  ],
   "rules": {
     "eslint-comments/no-unused-disable": "error"
   },
