@@ -18,8 +18,8 @@ jobs:
         with:
           node-version: 12.16.3
           registry-url: https://registry.npmjs.org/
-          env:
-            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Setup Pulumi
         uses: docker://pulumi/actions:v2.4.0
         env:
