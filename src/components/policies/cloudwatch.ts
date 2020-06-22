@@ -2,6 +2,9 @@ import * as aws from '@pulumi/aws'
 import * as pulumi from '@pulumi/pulumi'
 
 export interface LambdaCloudWatchPolicyArgs {
+  /**
+   * Lambda name
+   */
   lambdaName: string
 
   /**

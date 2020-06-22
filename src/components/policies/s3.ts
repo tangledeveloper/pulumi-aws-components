@@ -2,6 +2,9 @@ import * as aws from '@pulumi/aws'
 import * as pulumi from '@pulumi/pulumi'
 
 interface S3PolicyArgs {
+  /**
+   * resource ARN for bucket policy
+   */
   bucketArn: pulumi.Output<aws.ARN>
 }
 
