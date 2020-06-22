@@ -8,7 +8,7 @@ export interface StartTextractPolicyArgs {
 export class TextractPolicy extends pulumi.ComponentResource {
   readonly policy: aws.iam.Policy
 
-  constructor(name: string, args: StartTextractPolicyArgs, opts: pulumi.ComponentResourceOptions) {
+  constructor(name: string, args: StartTextractPolicyArgs, opts?: pulumi.ComponentResourceOptions) {
     super('aws:components:TextractPolicy', name, args, opts)
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this }
