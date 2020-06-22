@@ -16,7 +16,7 @@ npm i --save-dev pulumi-aws-components
   These policies can be easily attached to IAM role.
 
 - [LambdaFunction](src/components/LambdaFunction.ts)
-- [AWS Textract](src/components/AsyncTextExtract.ts)
+- [AWS Textract for Async Operations](src/components/AsyncTextract.ts)
 
   Following are the resource it creates
 
