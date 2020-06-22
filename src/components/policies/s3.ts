@@ -2,7 +2,6 @@ import * as aws from '@pulumi/aws'
 import * as pulumi from '@pulumi/pulumi'
 
 interface S3PolicyArgs {
-  name: string
   bucketArn: pulumi.Output<aws.ARN>
 }
 
@@ -12,9 +11,9 @@ type S3ReadWritePolicyArgs = S3PolicyArgs
 export class S3ReadPolicy extends pulumi.ComponentResource {
   readonly policy: aws.iam.Policy
 
-  constructor(args: S3ReadPolicyArgs, opts?: pulumi.ComponentResourceOptions) {
-    super('aws:components:S3ReadPolicy', args.name, args, opts)
-    const { name, bucketArn } = args
+  constructor(name: string, args: S3ReadPolicyArgs, opts?: pulumi.ComponentResourceOptions) {
+    super('aws:components:S3ReadPolicy', name, args, opts)
+    const { bucketArn } = args
     const defaultParentOptions: pulumi.ResourceOptions = { parent: this }
     this.policy = new aws.iam.Policy(
       name,
@@ -40,29 +39,27 @@ export class S3ReadPolicy extends pulumi.ComponentResource {
 
 export class S3ReadWritePolicy extends pulumi.ComponentResource {
   readonly policy: aws.iam.Policy
-  constructor(args: S3ReadWritePolicyArgs, opts?: pulumi.ComponentResourceOptions) {
-    super('aws:components:S3ReadWritePolicy', args.name, args, opts)
+  constructor(name: string, args: S3ReadWritePolicyArgs, opts?: pulumi.ComponentResourceOptions) {
+    super('aws:components:S3ReadWritePolicy', name, args, opts)
     const defaultParentOptions: pulumi.ResourceOptions = { parent: this }
     this.policy = new aws.iam.Policy(
-      args.name,
+      name,
       {
-        policy: pulumi.output(args.bucketArn).apply(arn =>
-          JSON.stringify({
-            Version: '2012-10-17',
-            Statement: [
-              {
-                Action: ['s3:GetObject', 's3:PutObject', 's3:DeleteObject'],
-                Effect: 'Allow',
-                Resource: `${arn}/*`
-              },
-              {
-                Action: ['s3:ListBucket'],
-                Effect: 'Allow',
-                Resource: arn
-              }
-            ]
-          })
-        )
+        policy: {
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Allow',
+              Action: ['s3:GetObject', 's3:PutObject', 's3:DeleteObject'],
+              Resource: pulumi.interpolate`${args.bucketArn}/*`
+            },
+            {
+              Action: ['s3:ListBucket'],
+              Effect: 'Allow',
+              Resource: args.bucketArn
+            }
+          ]
+        }
       },
       defaultParentOptions
     )
