@@ -175,7 +175,8 @@ export class AsyncTextract extends pulumi.ComponentResource {
       `${name}-AsyncTextExtractor-onUpload`,
       this.callbackFunction,
       {
-        filterSuffix: '*.pdf'
+        event: '*',
+        filterSuffix: '.pdf'
       },
       defaultResourceOptions
     )
