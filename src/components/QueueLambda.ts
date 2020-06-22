@@ -3,7 +3,7 @@ import * as pulumi from '@pulumi/pulumi'
 import { LambdaFunctionArgs, LambdaFunction } from './LambdaFunction'
 import { SQSProcessPolicy } from './policies'
 
-export interface QueueLambdaArgs extends Omit<LambdaFunctionArgs, 'role' | 'runtime'> {
+export interface QueueLambdaArgs extends Omit<LambdaFunctionArgs, 'role'> {
   queue: aws.sqs.Queue
   queueBatchSize?: number
 }
@@ -22,7 +22,6 @@ export class QueueLambda extends pulumi.ComponentResource {
       name,
       {
         ...lambdaArgs,
-        runtime: aws.lambda.NodeJS12dXRuntime,
         environment
       },
       defaultParentOptions
