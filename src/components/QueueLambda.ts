@@ -18,17 +18,18 @@ export class QueueLambda extends pulumi.ComponentResource {
     const defaultParentOptions: pulumi.ResourceOptions = { parent: this }
     const { queue, queueBatchSize = 10, environment, ...lambdaArgs } = args
 
+    const sqsPolicyName = `${name}-policy-sqs`
+    this.queuePolicy = new SQSProcessPolicy(sqsPolicyName, { queueArn: queue.arn }, defaultParentOptions)
+
     this.lambda = new LambdaFunction(
       name,
       {
         ...lambdaArgs,
+        policyArns: [...(lambdaArgs.policyArns || []), this.queuePolicy.policy.arn],
         environment
       },
       defaultParentOptions
     )
-
-    const sqsPolicyName = `${name}-policy-sqs`
-    this.queuePolicy = new SQSProcessPolicy(sqsPolicyName, { queueArn: queue.arn }, defaultParentOptions)
 
     queue.onEvent(
       `${name}-queue-event-subscription`,
