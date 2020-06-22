@@ -3,7 +3,7 @@ import * as pulumi from '@pulumi/pulumi'
 import * as AWS from 'aws-sdk'
 
 import { EventsQueue } from './EventsQueue'
-import { SNSPublishPolicy, LambdaCloudWatchPolicy, TextractPolicy } from './policies'
+import { LambdaCloudWatchPolicy, S3ReadWritePolicy, SNSPublishPolicy, TextractPolicy } from './policies'
 
 interface TextExtractorArgs {
   /**
@@ -21,6 +21,7 @@ export class AsyncTextract extends pulumi.ComponentResource {
   readonly snsTopic: aws.sns.Topic
   readonly role: aws.iam.Role
   readonly snsPolicy: SNSPublishPolicy
+  readonly s3ReadWritePolicy: S3ReadWritePolicy
   readonly textractPolicy: TextractPolicy
   readonly bucketEventSubscription: aws.s3.BucketEventSubscription
   readonly queue: EventsQueue
@@ -89,7 +90,17 @@ export class AsyncTextract extends pulumi.ComponentResource {
       `${topicName}-policy-attachment`,
       {
         policyArn: this.snsPolicy.policy.arn,
-        role: roleName
+        role: this.role
+      },
+      defaultResourceOptions
+    )
+
+    this.s3ReadWritePolicy = new S3ReadWritePolicy(`${name}-s3-policy`, { bucketArn: this.bucket.arn })
+    new aws.iam.RolePolicyAttachment(
+      `${name}-s3-policy-attachment`,
+      {
+        policyArn: this.s3ReadWritePolicy.policy.arn,
+        role: this.role
       },
       defaultResourceOptions
     )
