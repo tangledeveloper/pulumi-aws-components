@@ -33,7 +33,7 @@ export class S3ReadPolicy extends pulumi.ComponentResource {
       defaultParentOptions
     )
 
-    this.registerOutputs({ policy: this.policy })
+    this.registerOutputs({ policy: { name: this.policy.name, arn: this.policy.arn } })
   }
 }
 
@@ -63,6 +63,7 @@ export class S3ReadWritePolicy extends pulumi.ComponentResource {
       },
       defaultParentOptions
     )
-    this.registerOutputs({ policy: this.policy })
+
+    this.registerOutputs({ policy: { name: this.policy.name, arn: this.policy.arn } })
   }
 }
