@@ -26,7 +26,6 @@ export class QueueLambda extends pulumi.ComponentResource {
       {
         ...lambdaArgs,
         policyArns: [...(lambdaArgs.policyArns || []), this.queuePolicy.policy.arn],
-        timeout: queue.visibilityTimeoutSeconds.get(),
         environment
       },
       defaultParentOptions
