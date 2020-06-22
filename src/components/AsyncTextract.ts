@@ -3,7 +3,7 @@ import * as pulumi from '@pulumi/pulumi'
 import * as AWS from 'aws-sdk'
 
 import { EventsQueue } from './EventsQueue'
-import { SNSPublishPolicy, LambdaCloudWatchPolicy } from './policies'
+import { SNSPublishPolicy, LambdaCloudWatchPolicy, TextractPolicy } from './policies'
 
 interface TextExtractorArgs {
   /**
@@ -16,19 +16,20 @@ interface TextExtractorArgs {
 /**
  * Configures Amazon Textract for Asynchronous Operations
  */
-export class AsyncTextExtract extends pulumi.ComponentResource {
+export class AsyncTextract extends pulumi.ComponentResource {
   readonly bucket: aws.s3.Bucket
   readonly snsTopic: aws.sns.Topic
   readonly role: aws.iam.Role
   readonly snsPolicy: SNSPublishPolicy
+  readonly textractPolicy: TextractPolicy
   readonly bucketEventSubscription: aws.s3.BucketEventSubscription
   readonly queue: EventsQueue
   readonly callbackFunction: aws.lambda.CallbackFunction<aws.s3.BucketEvent, void>
 
   /**
    * Creates an Amazon Textract pipeline from a bucket event.
-   * Default operation is `GetDocumentTextDetection`
-   * (https://docs.aws.amazon.com/textract/latest/dg/API_GetDocumentTextDetection.html)
+   * Default operation is `StartDocumentTextDetection`
+   * (https://docs.aws.amazon.com/textract/latest/dg/API_StartDocumentTextDetection.html)
    *
    * @param name The _unique_ name of the resource.
    * @param args The arguments to configure the TextExtractor.
@@ -39,8 +40,6 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
 
     // Default resource options for this component's child resources.
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this }
-
-    const identity = pulumi.output(aws.getCallerIdentity({ async: true }))
 
     const bucketName = `${name.toLowerCase()}-bucket`
     const {
@@ -71,9 +70,9 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
       defaultResourceOptions
     )
 
-    // 'AmazonTextract' will be used to create inline policy for iam:PassRole.
+    // 'AmazonTextractServiceRole' will be used to create inline policy for iam:PassRole.
     // refer to https://docs.aws.amazon.com/textract/latest/dg/api-async-roles.html#api-async-roles-all-topics (step 8)
-    const roleName = `${name}-textract-service-role`
+    const roleName = `AmazonTextractServiceRole${name}`
     this.role = new aws.iam.Role(
       roleName,
       {
@@ -102,7 +101,7 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
       if (!RoleArn || !SNSTopicArn) {
         throw new Error('Required ENV are not present')
       }
-      const extract = new AWS.Textract({ logger: console, region: aws.config.region })
+      const extract = new AWS.Textract({ logger: console })
       const [record] = records
       const Bucket = record.s3.bucket.name
       const key = record.s3.object.key
@@ -139,8 +138,8 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
         runtime: aws.lambda.NodeJS12dXRuntime,
         environment: {
           variables: {
-            ROLE_ARN: pulumi.interpolate`arn:aws:iam::${identity.accountId}:role/${roleName}`,
-            SNS_TOPIC_ARN: pulumi.interpolate`arn:aws:sns:${aws.config.region}:${identity.accountId}:${topicName}`
+            ROLE_ARN: this.role.arn,
+            SNS_TOPIC_ARN: this.snsTopic.arn
           }
         }
       },
@@ -156,25 +155,21 @@ export class AsyncTextExtract extends pulumi.ComponentResource {
       `${name}-cloudwatch-policy-attachment`,
       {
         policyArn: cloudwatchPolicy.policy.arn,
-        role: roleName
+        role: this.role
       },
       defaultResourceOptions
     )
 
-    new aws.iam.RolePolicy(
+    this.textractPolicy = new TextractPolicy(
       `${name}-textract-policy`,
+      { resourceARN: this.callbackFunction.arn },
+      defaultResourceOptions
+    )
+    new aws.iam.RolePolicyAttachment(
+      `${name}-textract-policy-attachment`,
       {
-        role: this.role,
-        policy: {
-          Version: '2012-10-17',
-          Statement: [
-            {
-              Effect: 'Allow',
-              Action: ['textract:*'],
-              Resource: this.callbackFunction.arn
-            }
-          ]
-        }
+        policyArn: this.textractPolicy.policy.arn,
+        role: this.role
       },
       defaultResourceOptions
     )

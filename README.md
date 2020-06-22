@@ -21,28 +21,32 @@ npm i --save-dev pulumi-aws-components
   Following are the resource it creates
 
   ```
-      Previewing update (testing):
-      Type                                  Name                                                                  Plan
-  +   pulumi:pulumi:Stack                   pdf-text-extractor-testing                                                create
-  +   ├─ aws:components:AsyncTextExtract    pdf-text-extractor                                  create
-  +   │  ├─ aws:components:EventsQueue      pdf-text-extractor-events-queue                     create
-  +   │  │  ├─ aws:sqs:Queue                pdf-text-extractor-events-queue                     create
-  +   │  │  ├─ aws:sns:TopicSubscription    pdf-text-extractor-events-queue-topic-subscription  create
-  +   │  │  └─ aws:sqs:QueuePolicy          pdf-text-extractor-events-queue-topic-permission    create
-  +   │  ├─ aws:s3:BucketEventSubscription  pdf-text-extractor-AsyncTextExtractor-onUpload      create
-  +   │  │  └─ aws:lambda:Permission        pdf-text-extractor-AsyncTextExtractor-onUpload      create
-  +   │  ├─ aws:sns:Topic                   pdf-text-extractor-sns-topic                        create
-  +   │  ├─ aws:s3:Bucket                   pdf-text-extractor-bucket                           create
-  +   │  │  └─ aws:s3:BucketNotification    pdf-text-extractor-AsyncTextExtractor-onUpload      create
-  +   │  ├─ aws:iam:Role                    pdf-text-extractor-textract-service-role            create
-  +   │  ├─ aws:iam:RolePolicy              pdf-text-extractor-role-policy                      create
-  +   │  ├─ aws:iam:RolePolicyAttachment    pdf-text-extractor-sns-topic-policy-attachment      create
-  +   │  └─ aws:lambda:Function             pdf-text-extractor-lambda-callback                  create
-  +   └─ aws:components:SNSPublishPolicy    pdf-text-extractor-sns-topic-policy                 create
-  +      └─ aws:iam:Policy                  pdf-text-extractor-sns-topic-policy                 create
+    Previewing update (production):
+      Type                                         Name                                                           Plan
+  +   pulumi:pulumi:Stack                          text-extractor-production                                      create
+  +   ├─ aws:components:AsyncTextExtract           text-extractor-production-pdf                                  create
+  +   │  ├─ aws:components:LambdaCloudWatchPolicy  text-extractor-production-pdf-cloudwatch-policy                create
+  +   │  │  ├─ aws:cloudwatch:LogGroup             text-extractor-production-pdf-cloudwatch-policy-log-group      create
+  +   │  │  └─ aws:iam:Policy                      text-extractor-production-pdf-cloudwatch-policy                create
+  +   │  ├─ aws:s3:BucketEventSubscription         text-extractor-production-pdf-AsyncTextExtractor-onUpload      create
+  +   │  │  └─ aws:lambda:Permission               text-extractor-production-pdf-AsyncTextExtractor-onUpload      create
+  +   │  ├─ aws:components:EventsQueue             text-extractor-production-pdf-events-queue                     create
+  +   │  │  ├─ aws:sqs:Queue                       text-extractor-production-pdf-events-queue                     create
+  +   │  │  ├─ aws:sqs:QueuePolicy                 text-extractor-production-pdf-events-queue-topic-permission    create
+  +   │  │  └─ aws:sns:TopicSubscription           text-extractor-production-pdf-events-queue-topic-subscription  create
+  +   │  ├─ aws:sns:Topic                          text-extractor-production-pdf-sns-topic                        create
+  +   │  ├─ aws:s3:Bucket                          text-extractor-production-pdf-bucket                           create
+  +   │  │  └─ aws:s3:BucketNotification           text-extractor-production-pdf-AsyncTextExtractor-onUpload      create
+  +   │  ├─ aws:iam:Role                           AmazonTextractServiceRolepdf-textract                          create
+  +   │  ├─ aws:iam:RolePolicyAttachment           text-extractor-production-pdf-cloudwatch-policy-attachment     create
+  +   │  ├─ aws:iam:RolePolicyAttachment           text-extractor-production-pdf-sns-topic-policy-attachment      create
+  +   │  ├─ aws:lambda:Function                    text-extractor-production-pdf-lambda-callback                  create
+  +   │  └─ aws:iam:RolePolicy                     text-extractor-production-pdf-textract-policy                  create
+  +   └─ aws:components:SNSPublishPolicy           text-extractor-production-pdf-sns-topic-policy                 create
+  +      └─ aws:iam:Policy                         text-extractor-production-pdf-sns-topic-policy                 create
 
   Resources:
-      + 17 to create
+      + 21 to create
   ```
 
 - [EventsQueue](src/components/EventsQueue.ts)
