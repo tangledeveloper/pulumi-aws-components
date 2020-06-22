@@ -25,8 +25,6 @@ npm i --save-dev pulumi-aws-components
       Type                                         Name                                                                     Plan
   +   pulumi:pulumi:Stack                          text-extractor-production                                                create
   +   ├─ aws:components:AsyncTextExtract           text-extractor-production-pdf                                            create
-  +   │  ├─ aws:components:TextractPolicy          text-extractor-production-pdf-textract-policy                            create
-  +   │  │  └─ aws:iam:Policy                      text-extractor-production-pdf-textract-policy                            create
   +   │  ├─ aws:s3:BucketEventSubscription         text-extractor-production-pdf-AsyncTextExtractor-onUpload                create
   +   |  │  └─ aws:lambda:Permission               text-extractor-production-pdf-AsyncTextExtractor-onUpload                create
   +   │  ├─ aws:components:EventsQueue             text-extractor-production-pdf-events-queue                               create
@@ -44,11 +42,16 @@ npm i --save-dev pulumi-aws-components
   +   │  ├─ aws:iam:RolePolicyAttachment           text-extractor-production-pdf-cloudwatch-policy-attachment               create
   +   │  ├─ aws:iam:RolePolicyAttachment           text-extractor-production-pdf-sns-topic-policy-attachment                create
   +   |  └─ aws:iam:RolePolicyAttachment           text-extractor-production-pdf-textract-policy-attachment                 create
-  +   └─ aws:components:SNSPublishPolicy           text-extractor-production-pdf-sns-topic-policy                           create
-  +      └─ aws:iam:Policy                         text-extractor-production-pdf-sns-topic-policy                           create
+  +   │  └─ aws:iam:RolePolicyAttachment           text-extractor-production-pdf-s3-policy-attachment                       create
+  +   |─ aws:components:TextractPolicy             text-extractor-production-pdf-textract-policy                            create
+  +   │  └─ aws:iam:Policy                         text-extractor-production-pdf-textract-policy                            create
+  +   |─ aws:components:SNSPublishPolicy           text-extractor-production-pdf-sns-topic-policy                           create
+  +   │  └─ aws:iam:Policy                         text-extractor-production-pdf-sns-topic-policy                           create
+  +   ├─ aws:components:S3ReadWritePolicy          text-extractor-production-pdf-s3-policy                                  create
+  +   └─ └─ aws:iam:Policy                         text-extractor-production-pdf-s3-policy                                  create
 
   Resources:
-      + 23 to create
+      + 26 to create
   ```
 
 - [EventsQueue](src/components/EventsQueue.ts)

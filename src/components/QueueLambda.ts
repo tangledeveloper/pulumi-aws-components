@@ -4,7 +4,6 @@ import { LambdaFunctionArgs, LambdaFunction } from './LambdaFunction'
 import { SQSProcessPolicy } from './policies'
 
 export interface QueueLambdaArgs extends Omit<LambdaFunctionArgs, 'role' | 'runtime'> {
-  name: string
   queue: aws.sqs.Queue
   queueBatchSize?: number
 }
@@ -14,10 +13,10 @@ export class QueueLambda extends pulumi.ComponentResource {
   readonly lambda: LambdaFunction
   readonly queuePolicy: SQSProcessPolicy
 
-  constructor(args: QueueLambdaArgs, opts?: pulumi.ComponentResourceOptions) {
-    super('aws:components:QueueLambda', args.name, args, opts)
+  constructor(name: string, args: QueueLambdaArgs, opts?: pulumi.ComponentResourceOptions) {
+    super('aws:components:QueueLambda', name, args, opts)
     const defaultParentOptions: pulumi.ResourceOptions = { parent: this }
-    const { name, queue, queueBatchSize = 10, environment, ...lambdaArgs } = args
+    const { queue, queueBatchSize = 10, environment, ...lambdaArgs } = args
 
     this.lambda = new LambdaFunction(
       name,
