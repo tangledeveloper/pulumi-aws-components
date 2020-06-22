@@ -88,10 +88,9 @@ export class LambdaFunction extends pulumi.ComponentResource {
 
     // Attach any additional policies
     const policyArns = [...(args.policyArns || []), cloudWatchPolicy.policy.arn]
-    policyArns.map((arn, index) => {
-      // TODO: to extract the policy-name from the arn (arn:aws:iam::<account-id>:policy/<policy-name>)
-      // to use it as attachment name instead of using index
-      const policyAttachmentName = `${roleName}-policy-attachment-${index}`
+    policyArns.map(arn => {
+      const name = pulumi.output(arn).apply(name => name.split(':').reverse()[0])
+      const policyAttachmentName = pulumi.interpolate`${name}-${this.role.name}-attachment`.get()
       return new aws.iam.RolePolicyAttachment(
         policyAttachmentName,
         {
