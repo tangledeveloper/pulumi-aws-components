@@ -2,7 +2,7 @@ import * as aws from '@pulumi/aws'
 import * as pulumi from '@pulumi/pulumi'
 
 export interface StartTextractPolicyArgs {
-  resourceARN: pulumi.Input<aws.ARN>
+  actions?: string[]
 }
 
 export class TextractPolicy extends pulumi.ComponentResource {
@@ -22,8 +22,14 @@ export class TextractPolicy extends pulumi.ComponentResource {
           Statement: [
             {
               Effect: 'Allow',
-              Action: ['textract:*'],
-              Resource: args.resourceARN
+              Action: [
+                ...(args.actions || []),
+                'textract:StartDocumentTextDetection',
+                'textract:StartDocumentAnalysis',
+                'textract:GetDocumentTextDetection',
+                'textract:GetDocumentAnalysis'
+              ],
+              Resource: '*'
             }
           ]
         }
@@ -31,6 +37,6 @@ export class TextractPolicy extends pulumi.ComponentResource {
       defaultResourceOptions
     )
 
-    this.registerOutputs({ policy: this.policy })
+    this.registerOutputs({ policy: { name: this.policy.name, arn: this.policy.arn } })
   }
 }
