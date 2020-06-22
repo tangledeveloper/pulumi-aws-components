@@ -1,8 +1,36 @@
 import * as pulumi from '@pulumi/pulumi'
 import * as aws from '@pulumi/aws'
 
-export interface SQSProcessPolicyArgs {
+export interface SQSPolicyArgs {
   queueArn: pulumi.Input<aws.ARN>
+}
+export type SQSPublishPolicyArgs = SQSPolicyArgs
+export type SQSProcessPolicyArgs = SQSPolicyArgs
+
+export class SQSPublishPolicy extends pulumi.ComponentResource {
+  readonly policy: aws.iam.Policy
+  constructor(name: string, args: SQSPublishPolicyArgs, opts?: pulumi.ComponentResourceOptions) {
+    super('caya:SQSPublishPolicy', name, args, opts)
+    const defaultParentOptions: pulumi.ResourceOptions = { parent: this }
+    this.policy = new aws.iam.Policy(
+      name,
+      {
+        policy: {
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Allow',
+              Action: ['sqs:SendMessage'],
+              Resource: args.queueArn
+            }
+          ]
+        }
+      },
+      defaultParentOptions
+    )
+
+    this.registerOutputs({ policy: { name: this.policy.name, arn: this.policy.arn } })
+  }
 }
 
 export class SQSProcessPolicy extends pulumi.ComponentResource {
