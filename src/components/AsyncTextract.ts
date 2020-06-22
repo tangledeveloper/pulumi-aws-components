@@ -94,6 +94,16 @@ export class AsyncTextract extends pulumi.ComponentResource {
       defaultResourceOptions
     )
 
+    this.textractPolicy = new TextractPolicy(`${name}-textract-policy`, {}, defaultResourceOptions)
+    new aws.iam.RolePolicyAttachment(
+      `${name}-textract-policy-attachment`,
+      {
+        policyArn: this.textractPolicy.policy.arn,
+        role: this.role
+      },
+      defaultResourceOptions
+    )
+
     const eventHandler: aws.s3.BucketEventHandler = (ev, _, callback) => {
       const records = ev.Records || []
       const RoleArn = process.env['ROLE_ARN']
@@ -155,20 +165,6 @@ export class AsyncTextract extends pulumi.ComponentResource {
       `${name}-cloudwatch-policy-attachment`,
       {
         policyArn: cloudwatchPolicy.policy.arn,
-        role: this.role
-      },
-      defaultResourceOptions
-    )
-
-    this.textractPolicy = new TextractPolicy(
-      `${name}-textract-policy`,
-      { resourceARN: this.callbackFunction.arn },
-      defaultResourceOptions
-    )
-    new aws.iam.RolePolicyAttachment(
-      `${name}-textract-policy-attachment`,
-      {
-        policyArn: this.textractPolicy.policy.arn,
         role: this.role
       },
       defaultResourceOptions
