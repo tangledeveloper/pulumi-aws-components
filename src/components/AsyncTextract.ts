@@ -118,22 +118,30 @@ export class AsyncTextract extends pulumi.ComponentResource {
 
       try {
         extract
-          .startDocumentTextDetection({
-            JobTag: record.s3.object.key,
-            DocumentLocation: {
-              S3Object: {
-                Bucket,
-                Name: key
+          .startDocumentTextDetection(
+            {
+              JobTag: record.s3.object.key,
+              DocumentLocation: {
+                S3Object: {
+                  Bucket,
+                  Name: key
+                }
+              },
+              NotificationChannel: {
+                RoleArn,
+                SNSTopicArn
               }
             },
-            NotificationChannel: {
-              RoleArn,
-              SNSTopicArn
+            (err, data) => {
+              if (err) {
+                callback(err, undefined)
+                return
+              }
+              console.log(data.JobId)
+              callback(undefined, undefined)
             }
-          })
+          )
           .send()
-
-        callback(undefined, undefined)
       } catch (err) {
         callback(err, undefined)
       }
