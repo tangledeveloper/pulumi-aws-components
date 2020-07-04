@@ -1,18 +1,19 @@
 import * as aws from '@pulumi/aws'
 import * as pulumi from '@pulumi/pulumi'
 
-export interface EventsQueueArgs {
+export interface EventsQueueArgs extends Omit<aws.sqs.QueueArgs, 'name' | 'namePrefix'> {
   topic: aws.sns.Topic
 
   /**
    * string version of filter policy
    */
   filterPolicy?: string
-
-  visibilityTimeoutSeconds?: number
 }
 
-export class EventsQueue extends pulumi.ComponentResource {
+/**
+ * A custom SQS resource to subscribe to SNS events.
+ */
+export class SNSEventsQueue extends pulumi.ComponentResource {
   readonly queue: aws.sqs.Queue
   readonly visibilityTimeoutSeconds: number
   readonly topicSubscription: aws.sns.TopicSubscription
@@ -21,15 +22,15 @@ export class EventsQueue extends pulumi.ComponentResource {
   constructor(name: string, args: EventsQueueArgs, opts?: pulumi.ComponentResourceOptions) {
     super('aws:components:EventsQueue', name, args, opts)
     const defaultParentOptions: pulumi.ResourceOptions = { parent: this }
-    const { filterPolicy, topic, visibilityTimeoutSeconds = 30 } = args
+    const { filterPolicy, topic, ...queueArgs } = args
 
     // Queue
     const queueName = name
     this.queue = new aws.sqs.Queue(
       queueName,
       {
-        name: queueName,
-        visibilityTimeoutSeconds
+        ...queueArgs,
+        name: queueName
       },
       defaultParentOptions
     )
