@@ -2,19 +2,137 @@ import * as aws from '@pulumi/aws'
 import * as pulumi from '@pulumi/pulumi'
 import * as AWS from 'aws-sdk'
 
-import { EventsQueue } from './EventsQueue'
+import { SNSEventsQueue } from './SNSEventsQueue'
 import { LambdaCloudWatchPolicy, S3ReadWritePolicy, SNSPublishPolicy, TextractPolicy } from './policies'
 
-interface TextExtractorArgs {
+export interface TextExtractorArgs {
   /**
    * Bucket to use for the events.
+   *
    * If omitted, a new s3 bucket will be created.
    */
   bucket?: aws.s3.Bucket
+
+  /**
+   * File formats that need to be handled.
+   *
+   * By default all supported file formats will be used.
+   */
+  fileFormats?: ('jpeg' | 'png' | 'pdf')[]
+
+  /**
+   * Available Operations:
+   *  - `StartDocumentTextDetection` (https://docs.aws.amazon.com/textract/latest/dg/API_StartDocumentTextDetection.html)
+   *  - `StartDocumentAnalysis` (https://docs.aws.amazon.com/textract/latest/dg/API_StartDocumentAnalysis.html)
+   *
+   * Default operation is `StartDocumentTextDetection`
+   */
+  operation?: 'StartDocumentAnalysis' | 'StartDocumentTextDetection'
+
+  /**
+   * A list of the types of analysis to perform.
+   * Only used if `operation` is `StartDocumentAnalysis`. If omitted, defaults to ["TABLES", "FORMS"].
+   * https://docs.aws.amazon.com/textract/latest/dg/API_StartDocumentAnalysis.html#API_StartDocumentAnalysis_RequestSyntax
+   */
+  featureTypes?: AWS.Textract.FeatureTypes
+}
+
+const startDocumentTextDetectionHandler: aws.lambda.Callback<aws.s3.BucketEvent, void> = (ev, _, callback) => {
+  const records = ev.Records || []
+  const RoleArn = process.env['ROLE_ARN']
+  const SNSTopicArn = process.env['SNS_TOPIC_ARN']
+  if (!RoleArn || !SNSTopicArn) {
+    throw new Error('Required ENV are not present')
+  }
+  const extract = new AWS.Textract({ logger: console })
+  const [record] = records
+  const Bucket = record.s3.bucket.name
+  const key = record.s3.object.key
+
+  try {
+    extract
+      .startDocumentTextDetection(
+        {
+          JobTag: record.s3.object.key,
+          DocumentLocation: {
+            S3Object: {
+              Bucket,
+              Name: key
+            }
+          },
+          NotificationChannel: {
+            RoleArn,
+            SNSTopicArn
+          }
+        },
+        (err, data) => {
+          if (err) {
+            callback(err, undefined)
+            return
+          }
+          console.log(data.JobId)
+          callback(undefined, undefined)
+        }
+      )
+      .send()
+  } catch (err) {
+    callback(err, undefined)
+  }
+}
+
+const startDocumentAnalysisHandler: aws.lambda.Callback<aws.s3.BucketEvent, void> = (ev, _, callback) => {
+  const records = ev.Records || []
+  const RoleArn = process.env['ROLE_ARN']
+  const SNSTopicArn = process.env['SNS_TOPIC_ARN']
+  if (!RoleArn || !SNSTopicArn) {
+    throw new Error('Required ENV are not present')
+  }
+  const extract = new AWS.Textract({ logger: console })
+  const [record] = records
+  const Bucket = record.s3.bucket.name
+  const key = record.s3.object.key
+
+  try {
+    extract
+      .startDocumentAnalysis(
+        {
+          FeatureTypes: [],
+          JobTag: record.s3.object.key,
+          DocumentLocation: {
+            S3Object: {
+              Bucket,
+              Name: key
+            }
+          },
+          NotificationChannel: {
+            RoleArn,
+            SNSTopicArn
+          }
+        },
+        (err, data) => {
+          if (err) {
+            callback(err, undefined)
+            return
+          }
+          console.log(data.JobId)
+          callback(undefined, undefined)
+        }
+      )
+      .send()
+  } catch (err) {
+    callback(err, undefined)
+  }
 }
 
 /**
  * Configures Amazon Textract for Asynchronous Operations
+ * ```typescript
+ * import { AsyncTextract } from 'pulumi-aws-components'
+ *
+ * new AsyncTextract('text-extractor-pdf', {
+ *
+ * })
+ * ```
  */
 export class AsyncTextract extends pulumi.ComponentResource {
   readonly bucket: aws.s3.Bucket
@@ -23,8 +141,8 @@ export class AsyncTextract extends pulumi.ComponentResource {
   readonly snsPolicy: SNSPublishPolicy
   readonly s3ReadWritePolicy: S3ReadWritePolicy
   readonly textractPolicy: TextractPolicy
-  readonly bucketEventSubscription: aws.s3.BucketEventSubscription
-  readonly queue: EventsQueue
+  readonly bucketEventSubscriptions: aws.s3.BucketEventSubscription[]
+  readonly queue: SNSEventsQueue
   readonly callbackFunction: aws.lambda.CallbackFunction<aws.s3.BucketEvent, void>
 
   /**
@@ -44,6 +162,7 @@ export class AsyncTextract extends pulumi.ComponentResource {
 
     const bucketName = `${name.toLowerCase()}-bucket`
     const {
+      operation = 'StartDocumentTextDetection',
       bucket = new aws.s3.Bucket(
         bucketName,
         {
@@ -71,9 +190,7 @@ export class AsyncTextract extends pulumi.ComponentResource {
       defaultResourceOptions
     )
 
-    // 'AmazonTextractServiceRole' will be used to create inline policy for iam:PassRole.
-    // refer to https://docs.aws.amazon.com/textract/latest/dg/api-async-roles.html#api-async-roles-all-topics (step 8)
-    const roleName = `AmazonTextractServiceRole${name}`
+    const roleName = `${name}-ServiceRole`
     this.role = new aws.iam.Role(
       roleName,
       {
@@ -115,49 +232,8 @@ export class AsyncTextract extends pulumi.ComponentResource {
       defaultResourceOptions
     )
 
-    const eventHandler: aws.s3.BucketEventHandler = (ev, _, callback) => {
-      const records = ev.Records || []
-      const RoleArn = process.env['ROLE_ARN']
-      const SNSTopicArn = process.env['SNS_TOPIC_ARN']
-      if (!RoleArn || !SNSTopicArn) {
-        throw new Error('Required ENV are not present')
-      }
-      const extract = new AWS.Textract({ logger: console })
-      const [record] = records
-      const Bucket = record.s3.bucket.name
-      const key = record.s3.object.key
-
-      try {
-        extract
-          .startDocumentTextDetection(
-            {
-              JobTag: record.s3.object.key,
-              DocumentLocation: {
-                S3Object: {
-                  Bucket,
-                  Name: key
-                }
-              },
-              NotificationChannel: {
-                RoleArn,
-                SNSTopicArn
-              }
-            },
-            (err, data) => {
-              if (err) {
-                callback(err, undefined)
-                return
-              }
-              console.log(data.JobId)
-              callback(undefined, undefined)
-            }
-          )
-          .send()
-      } catch (err) {
-        callback(err, undefined)
-      }
-    }
-
+    const eventHandler =
+      operation === 'StartDocumentTextDetection' ? startDocumentTextDetectionHandler : startDocumentAnalysisHandler
     const lambdaName = `${name}-lambda-callback`
     this.callbackFunction = new aws.lambda.CallbackFunction(
       lambdaName,
@@ -190,17 +266,28 @@ export class AsyncTextract extends pulumi.ComponentResource {
       defaultResourceOptions
     )
 
-    this.bucketEventSubscription = bucket.onObjectCreated(
-      `${name}-AsyncTextExtractor-onUpload`,
-      this.callbackFunction,
-      {
-        event: '*',
-        filterSuffix: '.pdf'
-      },
-      defaultResourceOptions
-    )
+    const fileFormats: string[] = args.fileFormats || ['pdf', 'jpeg', 'png']
 
-    this.queue = new EventsQueue(`${name}-events-queue`, { topic: this.snsTopic }, defaultResourceOptions)
+    if (fileFormats.includes('jpeg')) {
+      fileFormats.push('jpg')
+    }
+
+    for (const fileFormat of fileFormats) {
+      const filterSuffix = `.${fileFormat}`
+      this.bucketEventSubscriptions.push(
+        bucket.onObjectCreated(
+          `${bucketName}-onUpload-${fileFormat}`,
+          this.callbackFunction,
+          {
+            event: '*',
+            filterSuffix
+          },
+          defaultResourceOptions
+        )
+      )
+    }
+
+    this.queue = new SNSEventsQueue(`${name}-events-queue`, { topic: this.snsTopic }, defaultResourceOptions)
 
     this.registerOutputs({
       role: { name: this.role.name, arn: this.role.arn },

@@ -15,20 +15,20 @@ export class QueueLambda extends pulumi.ComponentResource {
 
   constructor(name: string, args: QueueLambdaArgs, opts?: pulumi.ComponentResourceOptions) {
     super('aws:components:QueueLambda', name, args, opts)
-    const defaultParentOptions: pulumi.ResourceOptions = { parent: this }
+    const defaultResourceOptions: pulumi.ResourceOptions = { parent: this }
     const { queue, queueBatchSize = 10, environment, ...lambdaArgs } = args
 
     const sqsPolicyName = `${name}-policy-sqs`
-    this.queuePolicy = new SQSProcessPolicy(sqsPolicyName, { queueArn: queue.arn }, defaultParentOptions)
+    this.queuePolicy = new SQSProcessPolicy(sqsPolicyName, { queueArn: queue.arn }, defaultResourceOptions)
 
     this.lambda = new LambdaFunction(
       name,
       {
         ...lambdaArgs,
-        policyArns: [...(lambdaArgs.policyArns || []), this.queuePolicy.policy.arn],
+        policies: [...(lambdaArgs.policies || []), this.queuePolicy.policy],
         environment
       },
-      defaultParentOptions
+      defaultResourceOptions
     )
 
     queue.onEvent(
@@ -37,7 +37,7 @@ export class QueueLambda extends pulumi.ComponentResource {
       {
         batchSize: queueBatchSize
       },
-      defaultParentOptions
+      defaultResourceOptions
     )
 
     this.queue = queue

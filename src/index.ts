@@ -1,5 +1,5 @@
 export * from './components/policies'
 export * from './components/LambdaFunction'
 export * from './components/QueueLambda'
-export * from './components/EventsQueue'
+export * from './components/SNSEventsQueue'
 export * from './components/AsyncTextract'
