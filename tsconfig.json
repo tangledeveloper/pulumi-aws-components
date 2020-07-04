@@ -3,6 +3,7 @@
     "sourceMap": true,
     "allowJs": true,
     "declaration": true,
+    "declarationMap": true,
     "moduleResolution": "node",
     "noImplicitReturns": true,
     "noImplicitThis": true,
