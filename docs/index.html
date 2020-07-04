@@ -1,0 +1,7 @@
+{% assign documentedfiles = site.data.apidocs %}
+
+## Files documented
+
+{% for file in documentedfiles %}
+    The next file name we want to document is: {{ file.name }}.
+{% endfor %}

@@ -32,7 +32,7 @@
     "clean": "rimraf ./dist",
     "prebuild": "npm run clean",
     "build": "tsc",
-    "doc": "typedoc --json docs/apidocs.json --mode modules --tsconfig tsconfig.json",
+    "doc": "typedoc --json docs/_data/apidocs.json --mode modules --tsconfig tsconfig.json",
     "postversion": "git push && git push --tags"
   },
   "devDependencies": {
