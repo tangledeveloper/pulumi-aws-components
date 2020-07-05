@@ -167,8 +167,6 @@ export class AsyncTextract extends pulumi.ComponentResource {
       `${name}-s3-notification-queue`,
       {
         bucket: this.bucket,
-        fifoQueue: true,
-        contentBasedDeduplication: true,
         notificationFilterRules: fileFormats.map(format => ({
           events: ['s3:ObjectCreated:*'],
           filterSuffix: `.${format}`
