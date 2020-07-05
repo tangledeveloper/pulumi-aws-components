@@ -83,6 +83,33 @@ export class S3NotificationQueue extends pulumi.ComponentResource {
       defaultResourceOptions
     )
 
+    const queuePermissionName = `${queueName}-s3-permission`
+    this.queuePolicy = new aws.sqs.QueuePolicy(
+      queuePermissionName,
+      {
+        queueUrl: this.queue.id,
+        policy: pulumi.all([bucket.arn, this.queue.arn]).apply(([bucketArn, queueArn]) =>
+          JSON.stringify({
+            Version: '2012-10-17',
+            Statement: [
+              {
+                Effect: 'Allow',
+                Principal: '*',
+                Action: 'SQS:SendMessage',
+                Resource: [queueArn],
+                Condition: {
+                  ArnEquals: {
+                    'aws:SourceArn': bucketArn
+                  }
+                }
+              }
+            ]
+          })
+        )
+      },
+      defaultResourceOptions
+    )
+
     this.bucketNotifications = []
     for (const { events, filterPrefix, filterSuffix } of notificationFilterRules) {
       const bucketNotificationName = `${name}-${events.map(event => alphaNumericFilter(event)).join('-')}${
@@ -106,33 +133,6 @@ export class S3NotificationQueue extends pulumi.ComponentResource {
         )
       )
     }
-
-    const queuePermissionName = `${queueName}-s3-permission`
-    this.queuePolicy = new aws.sqs.QueuePolicy(
-      queuePermissionName,
-      {
-        queueUrl: this.queue.id,
-        policy: pulumi.all([bucket.arn, this.queue.arn]).apply(([bucketArn, queueArn]) =>
-          JSON.stringify({
-            Version: '2012-10-17',
-            Statement: [
-              {
-                Effect: 'Allow',
-                Principal: 's3.amazonaws.com',
-                Action: 'SQS:SendMessage',
-                Resource: [queueArn],
-                Condition: {
-                  ArnEquals: {
-                    'aws:SourceArn': bucketArn
-                  }
-                }
-              }
-            ]
-          })
-        )
-      },
-      defaultResourceOptions
-    )
 
     this.registerOutputs({
       queue: this.queue,
