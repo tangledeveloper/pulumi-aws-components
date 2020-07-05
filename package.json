@@ -56,8 +56,9 @@
     "typescript": "3.9.5"
   },
   "peerDependencies": {
-    "@pulumi/aws": "2.9.0",
-    "@pulumi/pulumi": "2.4.0"
+    "@pulumi/aws": "^2.9.0",
+    "@pulumi/pulumi": "^2.4.0",
+    "aws-sdk": "^2.701.0"
   },
   "repository": {
     "type": "git",
