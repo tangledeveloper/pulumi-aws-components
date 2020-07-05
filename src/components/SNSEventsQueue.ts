@@ -1,7 +1,7 @@
 import * as aws from '@pulumi/aws'
 import * as pulumi from '@pulumi/pulumi'
 
-export interface EventsQueueArgs extends Omit<aws.sqs.QueueArgs, 'name' | 'namePrefix'> {
+export interface SNSEventsQueueArgs extends Omit<aws.sqs.QueueArgs, 'name' | 'namePrefix'> {
   topic: aws.sns.Topic
 
   /**
@@ -15,12 +15,11 @@ export interface EventsQueueArgs extends Omit<aws.sqs.QueueArgs, 'name' | 'nameP
  */
 export class SNSEventsQueue extends pulumi.ComponentResource {
   readonly queue: aws.sqs.Queue
-  readonly visibilityTimeoutSeconds: number
   readonly topicSubscription: aws.sns.TopicSubscription
   readonly queuePolicy: aws.sqs.QueuePolicy
 
-  constructor(name: string, args: EventsQueueArgs, opts?: pulumi.ComponentResourceOptions) {
-    super('aws:components:EventsQueue', name, args, opts)
+  constructor(name: string, args: SNSEventsQueueArgs, opts?: pulumi.ComponentResourceOptions) {
+    super('aws:components:SNSEventsQueue', name, args, opts)
     const defaultParentOptions: pulumi.ResourceOptions = { parent: this }
     const { filterPolicy, topic, ...queueArgs } = args
 
@@ -36,7 +35,6 @@ export class SNSEventsQueue extends pulumi.ComponentResource {
     )
 
     // SNS - SQS Subscriptions
-    const queueUrl = this.queue.id
     const topicSubscriptionName = `${queueName}-topic-subscription`
     this.topicSubscription = new aws.sns.TopicSubscription(
       topicSubscriptionName,
@@ -54,7 +52,7 @@ export class SNSEventsQueue extends pulumi.ComponentResource {
     this.queuePolicy = new aws.sqs.QueuePolicy(
       queuePermissionName,
       {
-        queueUrl,
+        queueUrl: this.queue.id,
         policy: pulumi.all([topic.arn, this.queue.arn]).apply(([topicArn, queueArn]) =>
           JSON.stringify({
             Version: '2012-10-17',
@@ -77,6 +75,6 @@ export class SNSEventsQueue extends pulumi.ComponentResource {
       defaultParentOptions
     )
 
-    this.registerOutputs({ queue: { name: this.queue.name, url: queueUrl } })
+    this.registerOutputs({ queue: this.queue })
   }
 }
