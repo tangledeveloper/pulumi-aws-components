@@ -185,6 +185,7 @@ export class AsyncTextract extends pulumi.ComponentResource {
         callback: startTextExtractionHandler,
         role: this.role,
         runtime: aws.lambda.NodeJS12dXRuntime,
+        timeout: 30,
         environment: {
           variables: {
             ROLE_ARN: this.role.arn,
@@ -202,10 +203,14 @@ export class AsyncTextract extends pulumi.ComponentResource {
 
     // Job Status queue subscribed to SNS topic `jobStatusNotificationTopic`
     const visibilityTimeoutSeconds = 60
-    this.jobStatusNotificationQueue = new SNSEventsQueue(`${jobStatusNotificationTopicName}-queue`, {
-      topic: this.jobStatusNotificationTopic,
-      visibilityTimeoutSeconds
-    })
+    this.jobStatusNotificationQueue = new SNSEventsQueue(
+      `${jobStatusNotificationTopicName}-job-status-notification-queue`,
+      {
+        topic: this.jobStatusNotificationTopic,
+        visibilityTimeoutSeconds
+      },
+      defaultResourceOptions
+    )
 
     // Lambda handler to process results
     const jobResultProcessingLambdaName = `${name}-job-result-processing-lambda`
