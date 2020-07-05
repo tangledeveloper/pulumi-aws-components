@@ -12,7 +12,8 @@
     "prettier"
   ],
   "rules": {
-    "eslint-comments/no-unused-disable": "error"
+    "eslint-comments/no-unused-disable": "error",
+    "@typescript-eslint/explicit-module-boundary-types": "off"
   },
   "env": {
     "es6": true,
