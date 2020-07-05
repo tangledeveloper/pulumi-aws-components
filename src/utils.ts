@@ -1,11 +1,7 @@
 import * as aws from '@pulumi/aws'
 import * as pulumi from '@pulumi/pulumi'
 
-export function attachPoliciesToRole(
-  role: aws.iam.Role,
-  policies: aws.iam.Policy[],
-  opts?: pulumi.ResourceOptions
-): pulumi.Input<aws.iam.RolePolicyAttachment>[] {
+export function attachPoliciesToRole(role: aws.iam.Role, policies: aws.iam.Policy[], opts?: pulumi.ResourceOptions) {
   if (!policies.length) {
     return []
   }
@@ -28,4 +24,8 @@ export function attachPoliciesToRole(
   }
 
   return rolePolicyAttachments
+}
+
+export function alphaNumericFilter(input: string) {
+  return input.replace(/[^A-Za-z0-9]/g, '')
 }
