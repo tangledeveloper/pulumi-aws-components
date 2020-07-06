@@ -56,7 +56,9 @@ export interface TextExtractorArgs {
  * const textExtract = new AsyncTextract('text-extractor', {})
  *
  * // To extract text from PDF only
- * const pdfTextExtractor = new new AsyncTextract('text-extractor-pdf', {})
+ * const pdfTextExtractor = new new AsyncTextract('text-extractor-pdf', {
+ *  fileFormats: ['pdf']
+ * })
  * ```
  */
 export class AsyncTextract extends pulumi.ComponentResource {
