@@ -153,9 +153,13 @@ export class AsyncTextract extends pulumi.ComponentResource {
 
     // SNS Topic for the job status / result notification
     const jobStatusNotificationTopicName = `${name}-job-status`
-    this.jobStatusNotificationTopic = new aws.sns.Topic(jobStatusNotificationTopicName, {
-      name: jobStatusNotificationTopicName
-    })
+    this.jobStatusNotificationTopic = new aws.sns.Topic(
+      jobStatusNotificationTopicName,
+      {
+        name: jobStatusNotificationTopicName
+      },
+      defaultResourceOptions
+    )
 
     // S3 Notification Queue
     const fileFormats: string[] = args.fileFormats || ['pdf', 'jpeg', 'png']
@@ -167,8 +171,8 @@ export class AsyncTextract extends pulumi.ComponentResource {
       `${name}-s3-notification-queue`,
       {
         bucket: this.bucket,
+        events: ['s3:ObjectCreated:*'],
         notificationFilterRules: fileFormats.map(format => ({
-          events: ['s3:ObjectCreated:*'],
           filterSuffix: `.${format}`
         }))
       },
@@ -232,7 +236,11 @@ export class AsyncTextract extends pulumi.ComponentResource {
     )
 
     // Permissions for assumed role
-    this.bucketReadWritePolicy = new S3ReadWritePolicy(`${name}-s3-policy`, { bucketArn: this.bucket.arn })
+    this.bucketReadWritePolicy = new S3ReadWritePolicy(
+      `${name}-s3-policy`,
+      { bucketArn: this.bucket.arn },
+      defaultResourceOptions
+    )
     new aws.iam.RolePolicyAttachment(
       `${name}-s3-policy-attachment`,
       {
@@ -242,9 +250,13 @@ export class AsyncTextract extends pulumi.ComponentResource {
       defaultResourceOptions
     )
 
-    this.jobStatusPublishPolicy = new SNSPublishPolicy(`${jobStatusNotificationTopicName}-publish-policy`, {
-      topicArn: this.jobStatusNotificationTopic.arn
-    })
+    this.jobStatusPublishPolicy = new SNSPublishPolicy(
+      `${jobStatusNotificationTopicName}-publish-policy`,
+      {
+        topicArn: this.jobStatusNotificationTopic.arn
+      },
+      defaultResourceOptions
+    )
     new aws.iam.RolePolicyAttachment(
       `${jobStatusNotificationTopicName}-publish-policy-attachment`,
       {
@@ -269,12 +281,12 @@ export class AsyncTextract extends pulumi.ComponentResource {
     )
 
     const cloudwatchPolicy = new LambdaCloudWatchPolicy(
-      `${name}-cloudwatch-policy`,
+      `${lambdaName}-cloudwatch-policy`,
       { lambdaName },
       defaultResourceOptions
     )
     new aws.iam.RolePolicyAttachment(
-      `${name}-cloudwatch-policy-attachment`,
+      `${lambdaName}-cloudwatch-policy-attachment`,
       {
         policyArn: cloudwatchPolicy.policy.arn,
         role: this.role
@@ -334,6 +346,7 @@ export class AsyncTextract extends pulumi.ComponentResource {
       {},
       defaultResourceOptions
     )
+
     this.registerOutputs({
       bucket,
       role: this.role,
@@ -346,6 +359,7 @@ export class AsyncTextract extends pulumi.ComponentResource {
 }
 
 interface S3EventRecordMessage {
+  Event?: 's3:TestEvent' | string
   s3: {
     bucket: {
       name: string
@@ -357,6 +371,7 @@ interface S3EventRecordMessage {
 }
 
 interface TextractNotificationMessage {
+  Event?: 's3:TestEvent'
   Status: 'SUCCEEDED' | 'FAILED' | 'ERROR'
   JobTag: string
   JobId: string
@@ -527,7 +542,7 @@ function extractTables(blocks: AWS.Textract.Block[]) {
   return csv.join('')
 }
 
-const startTextExtractionHandler: aws.lambda.Callback<aws.sqs.QueueEvent, void> = (ev, _, callback) => {
+const startTextExtractionHandler: aws.lambda.Callback<aws.sqs.QueueEvent, void> = async (ev, _, callback) => {
   const records = ev.Records || []
   const queueUrl = process.env['S3_NOTIFICATION_QUEUE_URL']
   const RoleArn = process.env['ROLE_ARN']
@@ -542,15 +557,16 @@ const startTextExtractionHandler: aws.lambda.Callback<aws.sqs.QueueEvent, void> 
   const sqs = new AWS.SQS()
 
   for (const record of records) {
+    console.log(record)
     const message: S3EventRecordMessage = JSON.parse(record.body)
-    const Bucket = message.s3.bucket.name
-    const key = message.s3.object.key
-    const JobTag = key
+    if (!message.Event || message.Event !== 's3:TestEvent') {
+      const Bucket = message.s3.bucket.name
+      const key = message.s3.object.key
+      const JobTag = key
 
-    if (textractAPI === 'StartDocumentTextDetection') {
-      extract
-        .startDocumentTextDetection(
-          {
+      if (textractAPI === 'StartDocumentTextDetection') {
+        await extract
+          .startDocumentTextDetection({
             JobTag,
             DocumentLocation: {
               S3Object: {
@@ -562,33 +578,11 @@ const startTextExtractionHandler: aws.lambda.Callback<aws.sqs.QueueEvent, void> 
               RoleArn,
               SNSTopicArn
             }
-          },
-          (err, data) => {
-            if (err) {
-              callback(err, undefined)
-            }
-
-            sqs
-              .deleteMessage(
-                {
-                  QueueUrl: queueUrl,
-                  ReceiptHandle: record.receiptHandle
-                },
-                err => {
-                  if (err) {
-                    callback(err, undefined)
-                  }
-                  console.log(data.JobId)
-                }
-              )
-              .send()
-          }
-        )
-        .send()
-    } else {
-      extract
-        .startDocumentAnalysis(
-          {
+          })
+          .promise()
+      } else {
+        await extract
+          .startDocumentAnalysis({
             FeatureTypes: process.env['ANALYSIS_FEATURE_TYPES']
               ? process.env['ANALYSIS_FEATURE_TYPES'].split(',')
               : ['TABLES', 'FORMS'],
@@ -603,32 +597,20 @@ const startTextExtractionHandler: aws.lambda.Callback<aws.sqs.QueueEvent, void> 
               RoleArn,
               SNSTopicArn
             }
-          },
-          (err, data) => {
-            if (err) {
-              callback(err, undefined)
-            }
-
-            sqs
-              .deleteMessage(
-                {
-                  QueueUrl: queueUrl,
-                  ReceiptHandle: record.receiptHandle
-                },
-                err => {
-                  if (err) {
-                    callback(err, undefined)
-                  }
-                  console.log(data.JobId)
-                }
-              )
-              .send()
-          }
-        )
-        .send()
+          })
+          .promise()
+      }
+    } else {
+      console.log('Test Event received')
     }
-  }
 
+    await sqs
+      .deleteMessage({
+        QueueUrl: queueUrl,
+        ReceiptHandle: record.receiptHandle
+      })
+      .promise()
+  }
   callback(undefined, undefined)
 }
 
@@ -646,7 +628,10 @@ const textractJobResultProcessor: aws.lambda.Callback<aws.sqs.QueueEvent, void> 
     const ReceiptHandle = Record['receiptHandle']
 
     const notificationMessage: TextractNotificationMessage = JSON.parse(Record.body)
-    if (notificationMessage.Status === 'SUCCEEDED') {
+    if (
+      !(notificationMessage.Event && notificationMessage.Event === 's3:TestEvent') &&
+      notificationMessage.Status === 'SUCCEEDED'
+    ) {
       const Bucket = notificationMessage.DocumentLocation.S3Bucket
       const documentName = notificationMessage.DocumentLocation.S3ObjectName
 
