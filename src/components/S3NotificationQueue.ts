@@ -25,9 +25,7 @@ export type S3Event =
  * Notification configurations cannot define filtering rules with overlapping prefixes, overlapping suffixes,
  * or overlapping combinations of prefixes and suffixes for the same event types.
  */
-export interface S3NotificationQueueFilterRules {
-  events: S3Event[]
-
+export interface S3NotificationQueueFilterRule {
   /**
    * notifications to be filtered by the prefix of the key name of objects.
    */
@@ -48,12 +46,14 @@ export interface S3NotificationQueueArgs extends Omit<aws.sqs.QueueArgs, 'name' 
    */
   bucket: aws.s3.Bucket
 
+  events: S3Event[]
+
   /**
    * Events filter criteria. A new bucket notification will be created for each entry.
    * Notification configurations cannot define filtering rules with overlapping prefixes, overlapping suffixes,
    * or overlapping combinations of prefixes and suffixes for the same event types.
    */
-  notificationFilterRules: S3NotificationQueueFilterRules[]
+  notificationFilterRules: S3NotificationQueueFilterRule[]
 }
 
 /**
@@ -62,7 +62,7 @@ export interface S3NotificationQueueArgs extends Omit<aws.sqs.QueueArgs, 'name' 
 export class S3NotificationQueue extends pulumi.ComponentResource {
   readonly queue: aws.sqs.Queue
   readonly queuePolicy: aws.sqs.QueuePolicy
-  readonly bucketNotifications: aws.s3.BucketNotification[]
+  readonly bucketNotification: aws.s3.BucketNotification
 
   constructor(name: string, args: S3NotificationQueueArgs, opts?: pulumi.CustomResourceOptions) {
     super('aws:components:S3NotificationQueue', name, args, opts)
@@ -70,7 +70,7 @@ export class S3NotificationQueue extends pulumi.ComponentResource {
     // Default resource options for this component's child resources.
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this }
 
-    const { bucket, notificationFilterRules, ...queueArgs } = args
+    const { bucket, notificationFilterRules, events, ...queueArgs } = args
 
     // Queue
     const queueName = name
@@ -110,33 +110,28 @@ export class S3NotificationQueue extends pulumi.ComponentResource {
       defaultResourceOptions
     )
 
-    this.bucketNotifications = []
-    for (const { events, filterPrefix, filterSuffix } of notificationFilterRules) {
-      const bucketNotificationName = `${name}-${events.map(event => alphaNumericFilter(event)).join('-')}${
-        filterPrefix ? `-${alphaNumericFilter(filterPrefix)}` : ''
-      }${filterSuffix ? `-${alphaNumericFilter(filterSuffix)}` : ''}`
-      this.bucketNotifications.push(
-        new aws.s3.BucketNotification(
-          bucketNotificationName,
-          {
-            bucket: args.bucket.bucket,
-            queues: [
-              {
-                events,
-                queueArn: this.queue.arn,
-                filterPrefix,
-                filterSuffix
-              }
-            ]
-          },
-          defaultResourceOptions
-        )
-      )
-    }
+    const bucketNotificationName = `${name}-${events.map(event => alphaNumericFilter(event)).join('-')}`
+    this.bucketNotification = new aws.s3.BucketNotification(
+      bucketNotificationName,
+      {
+        bucket: args.bucket.id,
+        queues: notificationFilterRules.map(notificationFilterRule => ({
+          id: `${bucketNotificationName}${
+            notificationFilterRule.filterPrefix ? alphaNumericFilter(notificationFilterRule.filterPrefix) : ''
+          }${notificationFilterRule.filterSuffix ? alphaNumericFilter(notificationFilterRule.filterSuffix) : ''}`,
+          queueArn: this.queue.arn,
+          events,
+          filterPrefix: notificationFilterRule.filterPrefix,
+          filterSuffix: notificationFilterRule.filterSuffix
+        }))
+      },
+      { ...defaultResourceOptions, dependsOn: this.queuePolicy }
+    )
 
     this.registerOutputs({
       queue: this.queue,
-      queuePolicy: this.queuePolicy
+      queuePolicy: this.queuePolicy,
+      bucketNotification: this.bucketNotification
     })
   }
 }
