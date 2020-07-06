@@ -17,6 +17,7 @@ npm i --save-dev pulumi-aws-components
 
 - [LambdaFunction](src/components/LambdaFunction.ts)
 - [S3 - SQS subscription queue](src/components/S3NotificationQueue.ts)
-- [AWS Textract for Async Operations](src/components/AsyncTextract.ts)
+- [AWS Textract for Async Operations Pipeline](src/components/AsyncTextract.ts)
+  - Refer to example usage from here [examples/async-textract](examples/async-textract)
 - [SNS - SQS subscription Queue](src/components/SNSEventsQueue.ts)
 - [SQS Processing Lambda](src/components/QueueLambda.ts)
