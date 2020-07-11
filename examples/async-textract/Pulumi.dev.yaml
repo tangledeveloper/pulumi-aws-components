@@ -1,2 +1,2 @@
 config:
-  aws:region: eu-central-1
+  aws:region: eu-west-1
