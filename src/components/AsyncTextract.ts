@@ -178,7 +178,7 @@ export class AsyncTextract extends pulumi.ComponentResource {
           filterSuffix: `.${format}`
         }))
       },
-      defaultResourceOptions
+      { ...defaultResourceOptions, dependsOn: this.bucket }
     )
 
     // Lambda handler to process S3 Notifications
@@ -241,7 +241,7 @@ export class AsyncTextract extends pulumi.ComponentResource {
     this.bucketReadWritePolicy = new S3ReadWritePolicy(
       `${name}-s3-policy`,
       { bucketArn: this.bucket.arn },
-      defaultResourceOptions
+      { ...defaultResourceOptions, dependsOn: this.bucket }
     )
     new aws.iam.RolePolicyAttachment(
       `${name}-s3-policy-attachment`,
@@ -249,7 +249,7 @@ export class AsyncTextract extends pulumi.ComponentResource {
         policyArn: this.bucketReadWritePolicy.policy.arn,
         role: this.role
       },
-      defaultResourceOptions
+      { ...defaultResourceOptions, dependsOn: this.bucketReadWritePolicy }
     )
 
     this.jobStatusPublishPolicy = new SNSPublishPolicy(
@@ -257,7 +257,7 @@ export class AsyncTextract extends pulumi.ComponentResource {
       {
         topicArn: this.jobStatusNotificationTopic.arn
       },
-      defaultResourceOptions
+      { ...defaultResourceOptions, dependsOn: this.jobStatusNotificationTopic }
     )
     new aws.iam.RolePolicyAttachment(
       `${jobStatusNotificationTopicName}-publish-policy-attachment`,
@@ -265,13 +265,13 @@ export class AsyncTextract extends pulumi.ComponentResource {
         policyArn: this.jobStatusPublishPolicy.policy.arn,
         role: this.role
       },
-      defaultResourceOptions
+      { ...defaultResourceOptions, dependsOn: this.jobStatusPublishPolicy }
     )
 
     this.s3NotificationQueueProcessPolicy = new SQSProcessPolicy(
       `${name}-s3-notification-queue-process-policy`,
       { queueArn: this.s3NotificationQueue.queue.arn },
-      defaultResourceOptions
+      { ...defaultResourceOptions, dependsOn: this.s3NotificationQueue.queue }
     )
     new aws.iam.RolePolicyAttachment(
       `${name}-s3-notification-queue-process-policy-attach`,
@@ -279,7 +279,7 @@ export class AsyncTextract extends pulumi.ComponentResource {
         policyArn: this.s3NotificationQueueProcessPolicy.policy.arn,
         role: this.role
       },
-      defaultResourceOptions
+      { ...defaultResourceOptions, dependsOn: this.s3NotificationQueueProcessPolicy }
     )
 
     const cloudwatchPolicy = new LambdaCloudWatchPolicy(
@@ -299,7 +299,7 @@ export class AsyncTextract extends pulumi.ComponentResource {
     this.jobStatusNotificationQueueProcessPolicy = new SQSProcessPolicy(
       `${name}-job-status-queue-process-policy`,
       { queueArn: this.jobStatusNotificationQueue.queue.arn },
-      defaultResourceOptions
+      { ...defaultResourceOptions, dependsOn: this.jobStatusNotificationQueue.queue }
     )
     new aws.iam.RolePolicyAttachment(
       `${name}-job-status-queue-process-policy-attach`,
@@ -307,7 +307,7 @@ export class AsyncTextract extends pulumi.ComponentResource {
         policyArn: this.jobStatusNotificationQueueProcessPolicy.policy.arn,
         role: this.role
       },
-      defaultResourceOptions
+      { ...defaultResourceOptions, dependsOn: this.jobStatusNotificationQueueProcessPolicy }
     )
 
     const jobResultProcessingLambdaCloudwatchPolicy = new LambdaCloudWatchPolicy(
@@ -331,7 +331,7 @@ export class AsyncTextract extends pulumi.ComponentResource {
         policyArn: this.textractPolicy.policy.arn,
         role: this.role
       },
-      defaultResourceOptions
+      { ...defaultResourceOptions, dependsOn: this.textractPolicy }
     )
 
     // S3 notification queue event subscription
