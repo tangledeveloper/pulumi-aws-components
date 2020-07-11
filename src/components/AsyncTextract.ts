@@ -360,18 +360,6 @@ export class AsyncTextract extends pulumi.ComponentResource {
   }
 }
 
-interface S3EventRecordMessage {
-  Event?: 's3:TestEvent' | string
-  s3: {
-    bucket: {
-      name: string
-    }
-    object: {
-      key: string
-    }
-  }
-}
-
 interface TextractNotificationMessage {
   Event?: 's3:TestEvent'
   Status: 'SUCCEEDED' | 'FAILED' | 'ERROR'
@@ -559,11 +547,10 @@ const startTextExtractionHandler: aws.lambda.Callback<aws.sqs.QueueEvent, void> 
   const sqs = new AWS.SQS()
 
   for (const record of records) {
-    console.log(record)
-    const message: S3EventRecordMessage = JSON.parse(record.body)
-    if (!message.Event || message.Event !== 's3:TestEvent') {
-      const Bucket = message.s3.bucket.name
-      const key = message.s3.object.key
+    const message: aws.s3.BucketEvent = JSON.parse(record.body)
+    for (const bucketRecord of message.Records || []) {
+      const Bucket = bucketRecord.s3.bucket.name
+      const key = bucketRecord.s3.object.key
       const JobTag = key
 
       if (textractAPI === 'StartDocumentTextDetection') {
@@ -602,8 +589,6 @@ const startTextExtractionHandler: aws.lambda.Callback<aws.sqs.QueueEvent, void> 
           })
           .promise()
       }
-    } else {
-      console.log('Test Event received')
     }
 
     await sqs
