@@ -463,7 +463,7 @@ function extractFormData(blocks: AWS.Textract.Block[]) {
       blockMap[block.Id] = block
 
       if (block.BlockType === 'KEY_VALUE_SET') {
-        if (block['EntityTypes']?.includes('KEY')) {
+        if (block['EntityTypes'] && block['EntityTypes'].includes('KEY')) {
           keyBlocks[block.Id] = block
         } else {
           valueBlocks[block.Id] = block
