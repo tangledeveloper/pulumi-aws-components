@@ -30,6 +30,7 @@ export class LambdaCloudWatchPolicy extends pulumi.ComponentResource {
     this.policy = new aws.iam.Policy(
       name,
       {
+        name,
         description: `IAM policy for logging from ${lambdaName} lambda`,
         policy: {
           Version: '2012-10-17',
